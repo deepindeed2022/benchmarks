@@ -2,13 +2,14 @@ import os
 import json
 import time
 import numpy as np
-import pycuda.driver as cuda
-import tensorrt as trt
-from feeder import BertFeeder
 
 import torch
 import onnx
 import onnxsim
+import tensorrt as trt
+import pycuda.driver as cuda
+
+from feeder import BertFeeder
 
 def mkdir_if_not_exit(path):
     if not os.path.exists(path):

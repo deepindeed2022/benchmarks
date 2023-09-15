@@ -1,15 +1,17 @@
 import os
 import sys
-import onnx
-import onnxsim
-from torch import nn
-import torch
-import torch.onnx
-from torchvision import models as torch_models
 import logging
 import argparse
-import onnxruntime as rt
+
 import numpy as np
+import onnx
+import onnxsim
+import onnxruntime as rt
+import torch
+from torch import nn
+import torch.onnx
+from torchvision import models as torch_models
+
 from model_utils import setup_logger, file_size
 
 

@@ -1,5 +1,7 @@
-import tensorrt as trt
 import logging
+
+import tensorrt as trt
+
 from model_utils import setup_logger
 
 EXPLICIT_BATCH = 1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
@@ -44,7 +46,7 @@ def build_engine(onnx_path, model_name, max_batch_size, image_size, percision="f
         config.set_tactic_sources(tactic_source)
 
     profile = builder.create_optimization_profile()
-    opt_bz = max_batch_size #int(max_batch_size//2)
+    opt_bz = max_batch_size
     profile.set_shape("input", (1, 3, image_size, image_size), (opt_bz, 3, image_size, image_size), (max_batch_size, 3, image_size, image_size))
     config.add_optimization_profile(profile)
 

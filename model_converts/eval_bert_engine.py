@@ -1,11 +1,13 @@
-import torch.cuda.nvtx as torch_nvtx
-import argparse
-import numpy as np
-import tensorrt as trt
-import torch
 import time
+import argparse
 import logging
+import numpy as np
+
+import torch
+import torch.cuda.nvtx as nvtx
 import pycuda.driver as cuda
+import tensorrt as trt
+
 from model_utils import setup_logger
 
 
@@ -177,9 +179,9 @@ def run_engine(args):
 
     logging.info('warm up')
     for i in range(10):
-        torch_nvtx.range_push("Infer")
+        nvtx.range_push("Infer")
         outputs_dict = trtpredictor(inputs_dict=inputs)
-        torch_nvtx.range_pop()
+        nvtx.range_pop()
     torch.cuda.synchronize()
     logging.info('start testing trt engine')
     start_t = time.time()

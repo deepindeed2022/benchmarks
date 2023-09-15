@@ -1,1 +1,4 @@
 model_converts/models
+model_converts/benchmark_*
+*.log
+*.pyc

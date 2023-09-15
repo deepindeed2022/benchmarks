@@ -1,10 +1,11 @@
-from torch import nn
 import time
-from torch.cuda import amp
-import torch
 import logging
 from pathlib import Path
 import pkg_resources as pkg
+
+import torch
+from torch import nn
+from torch.cuda import amp
 
 model_locations = dict({
     "efficient_b4_big_5cls": "models/mpi/review-qc/human-image/efficient_b4_big_5cls.pth",

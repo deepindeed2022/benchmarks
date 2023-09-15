@@ -1,13 +1,13 @@
 import time
-# from tkinter.font import names
-import torch
 import logging
 import argparse
+# from tkinter.font import names
 import numpy as np
+import torch
 import onnx
 import onnxruntime
-import onnxoptimizer
 import onnxsim
+import onnxoptimizer
 
 from model_utils import setup_logger, file_size
 

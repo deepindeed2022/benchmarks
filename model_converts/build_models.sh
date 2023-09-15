@@ -16,16 +16,15 @@ function test_export_cv() {
     if [[ -n $3 ]]; then
         model_path=$3
     fi
-    echo $bs
     if [[ -n $4 ]]; then
         bs=$4
     fi
     model_dir=${model_root}/${model_name}_${img_size}
-    if [[ ${model_name} == "yolov5s" ]]; do
+    if [[ ${model_name} == "yolov5s" ]]; then
         python3 -u export_onnx_models.py --model_name ${model_name} --model_path ${model_path} -bs ${bs} --img_size ${img_size} --simplify 
     else
         python3 -u export_onnx_models.py --model_name ${model_name} --model_path ${model_path} -bs ${bs} --img_size ${img_size} --simplify --do_constant_folding 
-    done
+    fi
     python3 -u build_engine.py --model_name ${model_name} --model_path ${model_name}_${img_size}_dynamic_bz${bs}_opset14.sim.onnx -bz ${bs} --image_size ${img_size} --fp16
     
     torch_path=${model_name}_${bs}_${img_size}.pth
@@ -33,11 +32,11 @@ function test_export_cv() {
     trt_path=${model_name}_${img_size}_bz${bs}_trt_fp16_${TRT_VERSION}.engine
 
     mkdir -p $model_dir
-    if [[ ${model_name} == "yolov5s" ]]; do
+    if [[ ${model_name} == "yolov5s" ]]; then
         cp configs/config_yolo.yml $model_dir/config.yml
     else
         cp configs/config.yml $model_dir/config.yml
-    done
+    fi
     sed -i "s/img_size/${img_size}/g"   ${model_dir}/config.yml
     sed -i "s/bs/${bs}/g"               ${model_dir}/config.yml
     sed -i "s/pthmodel/${torch_path}/g" ${model_dir}/config.yml
@@ -45,12 +44,12 @@ function test_export_cv() {
     sed -i "s/trtmodel/${trt_path}/g"   ${model_dir}/config.yml
     cp $model_dir/config.yml            $model_dir/config_torch.yml
     sed -i "s/\"TRTPredictor\"/\"TorchPredictor\"/g" ${model_dir}/config_torch.yml
-    if [[ ${EXPORT_TRT_FP32} ]]; do
+    if [[ ${EXPORT_TRT_FP32} ]]; then
         python3 -u build_engine.py --model_name ${model_name} --model_path ${model_name}_${img_size}_dynamic_bz${bs}_opset14.sim.onnx -bz ${bs} --image_size ${img_size}
         cp $model_dir/config.yml $model_dir/config_fp32.yml
         sed -i "s/trt\_fp16/trt\_fp32/g" ${model_dir}/config_fp32.yml
     fi
-    if [[ ${EXPORT_ONNX} ]]; do
+    if [[ ${EXPORT_ONNX} ]]; then
         cp $model_dir/config.yml $model_dir/config_onnx.yml
         sed -i "s/\"TRTPredictor\"/\"OnnxPredictor\"/g"  ${model_dir}/config_onnx.yml
     fi
@@ -82,13 +81,13 @@ function test_export_bert() {
     sed -i "s/trtmodel/${trt_path}/g" ${model_dir}/config.yml
     cp $model_dir/config.yml $model_dir/config_torch.yml
     sed -i "s/\"TRTPredictor\"/\"TorchPredictor\"/g" ${model_dir}/config_torch.yml
-    if [[ ${EXPORT_TRT_FP32} ]]; do
+    if [[ ${EXPORT_TRT_FP32} ]]; then
         python3 -u build_bert_engine.py --model_name ${model_name} -bz ${bs} --seq_length ${seq_length}
         cp $model_dir/config.yml $model_dir/config_fp32.yml
         sed -i "s/trt\_fp16/trt\_fp32/g" ${model_dir}/config_fp32.yml
     fi
 
-    if [[ ${EXPORT_ONNX} ]]; do
+    if [[ ${EXPORT_ONNX} ]]; then
         cp $model_dir/config.yml $model_dir/config_onnx.yml
         sed -i "s/\"TRTPredictor\"/\"OnnxPredictor\"/g"  ${model_dir}/config_onnx.yml
     fi
@@ -121,10 +120,10 @@ test_export_cv resnet50 224
 #    test_export_cv $model 224
 # done
 
-download_models
-for bz in 16; do
- test_export_cv "yolov5s" 640  models/yolov5s.pt $bz
-done
+# download_models
+# for bz in 16; do
+#  test_export_cv "yolov5s" 640  models/yolov5s.pt $bz
+# done
 
 #test_export_cv "swinv2_tiny_window8_256" 256
 #test_export_cv "swinv2_small_window8_256" 256
