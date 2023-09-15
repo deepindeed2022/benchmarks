@@ -1,0 +1,9 @@
+[submodule "models/YOLOX"]
+	path = model_converts/models/YOLOX
+	url = https://github.com/Megvii-BaseDetection/YOLOX.git
+[submodule "models/yolov5"]
+	path = model_converts/models/yolov5
+	url = https://github.com/ultralytics/yolov5.git
+[submodule "models/LAVIS"]
+	path = model_converts/models/LAVIS
+	url = https://github.com/salesforce/LAVIS.git

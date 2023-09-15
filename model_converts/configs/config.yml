@@ -1,0 +1,17 @@
+Model:
+  input_size: img_size
+  max_batch_size: bs
+  backend: "TRTPredictor"
+  TorchPredictor:
+    inputs: ["input"]
+    outputs: ["output"]
+    model_path: "./models/pthmodel"
+  OnnxPredictor:
+    inputs: ["input"]
+    outputs: ["output"]
+    model_path: "./models/onnxmodel"
+  TRTPredictor:
+    model_path: "./models/trtmodel"
+    buffer:
+      input: [bs, 3, img_size, img_size]
+      output: [bs, 1000] 

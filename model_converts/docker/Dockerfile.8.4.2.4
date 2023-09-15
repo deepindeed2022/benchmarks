@@ -1,0 +1,35 @@
+# tensorrt 8.4.2
+FROM nvcr.io/nvidia/tensorrt:22.08-py3
+
+RUN ln -s /usr/local/bin/pip /usr/bin/pip
+RUN python3 -m pip install --no-cache-dir setuptools==41.2.0
+RUN python3 -m pip install --no-cache-dir opencv-python==4.5.5.64
+RUN python3 -m pip install --no-cache-dir opencv-python-headless==4.5.5.64
+RUN python3 -m pip install --no-cache-dir Flask==2.0.1
+RUN python3 -m pip install --no-cache-dir PyYAML==5.4.1
+RUN python3 -m pip install --no-cache-dir requests==2.27.1
+RUN python3 -m pip install --no-cache-dir gunicorn==20.1.0
+RUN python3 -m pip install --no-cache-dir loguru==0.6.0
+RUN python3 -m pip install --no-cache-dir protobuf==3.20.0
+RUN python3 -m pip install --no-cache-dir prometheus-client==0.13.1
+RUN python3 -m pip uninstall -y pycuda
+RUN python3 -m pip install --no-cache-dir pycuda==2021.1
+RUN python3 -m pip install --no-cache-dir pydantic==1.9.0
+# onnxruntime
+RUN python3 -m pip install --no-cache-dir onnx-simplifier==0.3.10
+RUN python3 -m pip install --no-cache-dir onnxruntime-gpu==1.12.1
+RUN python3 -m pip install --no-cache-dir timm==0.6.7
+# torch
+RUN python3 -m pip install --no-cache-dir torch==1.12.1+cu116 torchvision==0.13.1+cu116  --extra-index-url https://download.pytorch.org/whl/cu116
+RUN python3 -m pip install efficientnet_pytorch==0.7.1
+# text
+RUN python3 -m pip install --no-cache-dir importlib_metadata==5.0.0
+RUN python3 -m pip install --no-cache-dir transformers==4.19.2
+
+RUN python3 -m pip install --no-cache-dir psutil==5.9.2 pynvml==11.4.1
+RUN python3 -m pip install --no-cache-dir tabulate pandas matplotlib==3.6.1 seaborn
+RUN python3 -m pip install  --no-cache-dir tqdm boto3 requests regex sentencepiece sacremoses
+WORKDIR /workspace
+
+CMD ["bash"]
+

@@ -1,0 +1,18 @@
+Model:
+    max_batch_size: bs
+    backend: "TRTPredictor"
+    TorchPredictor:
+      inputs: ["input_ids", "attention_mask"]
+      outputs: ["output"]
+      model_path: "./models/pthmodel"
+    OnnxPredictor:
+      inputs: ["input_ids", "attention_mask"]
+      outputs: ["output"]
+      model_path: "./models/onnxmodel"
+    TRTPredictor:
+      model_path: "./models/trtmodel"
+      buffer:
+        input_ids: [bs, seqlength]
+        attention_mask: [bs, seqlength]
+        output: [bs, 2] 
+  
