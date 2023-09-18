@@ -1,14 +1,13 @@
-import time
 import argparse
+import time
 import logging
 import numpy as np
 
 import torch
-import torch.cuda.nvtx as nvtx
-import pycuda.driver as cuda
 import tensorrt as trt
-
-from model_utils import setup_logger
+import pycuda.driver as cuda
+import torch.cuda.profiler as profiler
+from utils import setup_logger
 
 
 class HostDeviceMem:
@@ -76,7 +75,6 @@ class Buffer:
         try:
             self._inputs[name].host = np.ascontiguousarray(tensor)
         except Exception as exc:
-            print(exc)
             logging.warn(exc)
 
 
@@ -89,26 +87,11 @@ class TRTPredictor:
         self._engine = TRTPredictor.load_engine(model_path)
 
         self._context = self._engine.create_execution_context()
+        buffer_shape = {
+            "input": input_shape,
+            "output": output_shape
+        }
 
-        if isinstance(input_shape, (tuple, list)):
-            input_buffer_shape = {
-                "input_ids": tuple(input_shape),
-                "attention_mask": tuple(input_shape)
-            }
-        elif isinstance(input_shape, dict):
-            input_buffer_shape = input_shape
-
-        if isinstance(output_shape, (list, tuple)):
-            output_buffer_shape = {
-                "output": tuple(output_shape)
-            }
-        elif isinstance(output_shape, dict):
-            output_buffer_shape = output_shape
-
-        buffer_shape = input_buffer_shape
-        for k, v in output_buffer_shape.items():
-            buffer_shape[k] = v
-        # buffer_shape.update(output_buffer_shape)
         self._buffer = Buffer(self._engine, buffer_shape)
         self._stream = cuda.Stream()
 
@@ -143,10 +126,8 @@ class TRTPredictor:
     def get_output(self):
         outputs_dict = {}
         for name, out in self._buffer.outputs.items():
-            # idx = self._engine.get_binding_index(name)
-            # shape = self._context.get_binding_shape(idx)
-            # print(idx, name, shape)
-            shape = self._context.get_tensor_shape(name)
+            idx = self._engine.get_binding_index(name)
+            shape = self._context.get_binding_shape(idx)
             num = trt.volume(shape)
             outputs_dict[name] = np.copy(out.host[:num].reshape(shape))
         return outputs_dict
@@ -163,91 +144,81 @@ class TRTPredictor:
 
 
 def run_engine(args):
-    num_data = 512
-    # cv
-    input_shape = {"input": [args.batch_size,
-                             3, args.image_size, args.image_size]}
-    # bert
-    input_shape = {"input_ids": [args.batch_size, args.image_size], "attention_mask": [
-        args.batch_size, args.image_size]}
-    output_shape = {"output": [args.batch_size, 1000]}
-    trtpredictor = TRTPredictor(
-        args.engine, input_shape, output_shape, args.batch_size)
-    inputs = {}
-    for key, shape in input_shape.items():
-        inputs[key] = np.random.rand(*shape).astype(np.int32)
-
+    input_shape = (args.batch_size, 3, args.image_size, args.image_size)
+    output_shape = (args.batch_size, 1000)
+    trtpredictor = TRTPredictor(args.engine, input_shape, output_shape, args.batch_size)
+    inputs = np.random.rand(*input_shape).astype(np.int32)
+    actual_batch_size = input_shape[0]
     logging.info('warm up')
     for i in range(10):
-        nvtx.range_push("Infer")
-        outputs_dict = trtpredictor(inputs_dict=inputs)
-        nvtx.range_pop()
+        outputs_dict = trtpredictor(inputs_dict={"input": inputs})
     torch.cuda.synchronize()
+    
     logging.info('start testing trt engine')
     start_t = time.time()
-    for _ in range(num_data // args.batch_size):
-        outputs_dict = trtpredictor(inputs_dict=inputs)
+    profiler.cudart().cudaProfilerStart()
+    outputs_dict = trtpredictor(inputs_dict={"input": inputs})
+    profiler.cudart().cudaProfilerStop()
     torch.cuda.synchronize()
     elapsed_time = time.time() - start_t
     logging.info('{} batch_size={} time: {:.4f} ms / image'.format(args.engine,
-                 args.batch_size, elapsed_time / num_data * 1000))
+                 args.batch_size, elapsed_time / (args.batch_size) * 1000))
 
 
-# def run_engine(args):
-#     num_data = 10240
-#     logger = trt.Logger()
-#     runtime = trt.Runtime(logger)
+def run_raw_engine(args):
+    logger = trt.Logger()
+    runtime = trt.Runtime(logger)
 
-#     with open(args.engine, 'rb') as f:
-#         engine = runtime.deserialize_cuda_engine(f.read())
+    with open(args.engine, 'rb') as f:
+        engine = runtime.deserialize_cuda_engine(f.read())
 
-#     context = engine.create_execution_context()
+    context = engine.create_execution_context()
 
-#     input_binding_idx = engine.get_binding_index('input')
-#     output_binding_idx = engine.get_binding_index('output')
+    input_binding_idx = engine.get_binding_index('input')
+    output_binding_idx = engine.get_binding_index('output')
 
-#     input_shape = (args.batch_size, 3, args.image_size, args.image_size)
-#     output_shape = (args.batch_size, 10)
+    input_shape = (args.batch_size, 3, args.image_size, args.image_size)
+    output_shape = (args.batch_size, 10)
 
-#     context.set_binding_shape(
-#         input_binding_idx,
-#         input_shape
-#     )
+    context.set_binding_shape(
+        input_binding_idx,
+        input_shape
+    )
 
-#     input_buffer = torch.zeros(
-#         input_shape, dtype=torch.float32, device=torch.device('cuda'))
-#     output_buffer = torch.zeros(
-#         output_shape, dtype=torch.float32, device=torch.device('cuda'))
+    input_buffer = torch.zeros(
+        input_shape, dtype=torch.float32, device=torch.device('cuda'))
+    output_buffer = torch.zeros(
+        output_shape, dtype=torch.float32, device=torch.device('cuda'))
 
-#     bindings = [None, None]
-#     bindings[input_binding_idx] = input_buffer.data_ptr()
-#     bindings[output_binding_idx] = output_buffer.data_ptr()
+    bindings = [None, None]
+    bindings[input_binding_idx] = input_buffer.data_ptr()
+    bindings[output_binding_idx] = output_buffer.data_ptr()
 
-#     inputs = np.random.rand(
-#         input_shape[0], input_shape[1], input_shape[2], input_shape[3]).astype(np.float32)
-#     actual_batch_size = input_shape[0]
-#     logging.info('start testing trt engine')
+    inputs = np.random.rand(
+        input_shape[0], input_shape[1], input_shape[2], input_shape[3]).astype(np.float32)
+    actual_batch_size = input_shape[0]
+    logging.info('start testing trt engine')
 
-#     stream = cuda.Stream()
-#     start_t = time.time()
-#     for _ in range(num_data // args.batch_size):
-#         input_buffer[0:actual_batch_size].host = np.ascontiguousarray(inputs)
-#         context.execute_async_v2(
-#             bindings,
-#             stream.handle
-#         )
-#     torch.cuda.current_stream().synchronize()
-#     output = output_buffer[0:actual_batch_size]
-#     elapsed_time = time.time() - start_t
-#     logging.info('{} batch_size={} time: {:.4f} ms / image'.format(args.engine, args.batch_size, elapsed_time / num_data * 1000))
+    stream = cuda.Stream()
+    start_t = time.time()
+    for _ in range(10):
+        input_buffer[0:actual_batch_size].host = np.ascontiguousarray(inputs)
+        context.execute_async_v2(
+            bindings,
+            stream.handle
+        )
+    torch.cuda.current_stream().synchronize()
+    output = output_buffer[0:actual_batch_size]
+    elapsed_time = time.time() - start_t
+    logging.info('{} batch_size={} time: {:.4f} ms / image'.format(args.engine, args.batch_size, elapsed_time / (args.batch_size * 10) * 1000))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('engine', type=str, default=None,
+    parser.add_argument('engine', type=str, default=f"../model_converts/benchmark_bz16_v{trt.__version__}/resnet50_224/resnet50_224_bz16_trt_fp16_v{trt.__version__}.engine",
                         help='Path to the optimized TensorRT engine')
-    parser.add_argument('--batch_size', type=int, default=1)
+    parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--image_size', type=int, default=224)
     args = parser.parse_args()
-    setup_logger(logname="run_onnx.log")
+    setup_logger(logname="run_trt.log")
     run_engine(args)

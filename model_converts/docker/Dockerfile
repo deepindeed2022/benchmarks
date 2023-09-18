@@ -65,7 +65,7 @@ RUN python3 -m pip install torch==1.13.1 torchvision==0.14.1 --extra-index-url h
 RUN python3 -m pip install --no-cache-dir nvidia-pyindex==1.0.9
 RUN python3 -m pip install --no-cache-dir onnx-graphsurgeon==0.3.19
 RUN python3 -m pip install --no-cache-dir onnxruntime-gpu==1.12.1
-RUN python3 -m pip install --no-cache-dir onnx-simplifier==0.4.8
+RUN python3 -m pip install --no-cache-dir onnx-simplifier==0.3.10
 RUN python3 -m pip install --no-cache-dir pydantic==1.10.2
 RUN python3 -m pip install --no-cache-dir nvidia-ml-py
 

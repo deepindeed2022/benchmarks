@@ -125,7 +125,7 @@ def build_engine(args, onnx_path, engine_path='', percision='fp32'):
     print(f"onnx_model_path = {onnx_path}")
     print(f"args.seq_length = {args.seq_length}")
     # https://docs.nvidia.com/deeplearning/tensorrt/api/python_api/infer/Core/Engine.html
-    TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE)
+    TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE if args.verbose else trt.Logger.INFO)
 
     builder = trt.Builder(TRT_LOGGER)
     network = builder.create_network(EXPLICIT_BATCH)
@@ -247,6 +247,7 @@ if __name__ == '__main__':
                         default="output", help='trt model benchmark result')
     parser.add_argument('--trt_version', type=str,
                         default=f"v{trt.__version__}", help='tensorrt version')
+    parser.add_argument('--verbose', action="store_true", help='print debug information or not')
     args = parser.parse_args()
     mkdir_if_not_exit("output")
     if args.fp16:

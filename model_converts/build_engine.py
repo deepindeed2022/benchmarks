@@ -7,8 +7,8 @@ from model_utils import setup_logger
 EXPLICIT_BATCH = 1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
 
 
-def build_engine(onnx_path, model_name, max_batch_size, image_size, percision="fp32", dla_core = None, gpu_fallback=None):
-    TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE)
+def build_engine(onnx_path, model_name, max_batch_size, image_size, percision="fp32", dla_core = None, gpu_fallback=None, verbose=False):
+    TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE if verbose else trt.Logger.INFO)
 
     builder = trt.Builder(TRT_LOGGER)
     builder.max_batch_size = max_batch_size
@@ -81,4 +81,4 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_fallback', action="store_true", help='gpu fallback')
     args = parser.parse_args()
     setup_logger(logname="run_onnx.log")
-    build_engine(args.model_path, args.model_name, args.max_batch_size, args.image_size, percision="fp16" if args.fp16 else "fp32", dla_core=args.dla_core, gpu_fallback=args.gpu_fallback)
+    build_engine(args.model_path, args.model_name, args.max_batch_size, args.image_size, percision="fp16" if args.fp16 else "fp32", dla_core=args.dla_core, gpu_fallback=args.gpu_fallback, verbose=args.verbose)
